@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danawa Lowest Price Crawler</title>
+    <title>Danawa Price Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #4f46e5;
@@ -19,12 +21,12 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         body {
             background-color: var(--bg-color);
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.15) 0px, transparent 50%);
             background-attachment: fixed;
@@ -32,19 +34,17 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
             padding: 3rem 1rem;
         }
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 960px;
         }
 
         .glass-panel {
             background: var(--surface-color);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--border);
             border-radius: 1.5rem;
             padding: 2.5rem;
@@ -53,8 +53,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .header {
@@ -80,7 +87,6 @@
             display: flex;
             gap: 1rem;
             margin-bottom: 2rem;
-            position: relative;
         }
 
         .search-input {
@@ -91,8 +97,8 @@
             border: 1px solid var(--border);
             border-radius: 1rem;
             color: var(--text-color);
-            transition: all 0.3s ease;
             outline: none;
+            transition: all 0.3s;
         }
 
         .search-input:focus {
@@ -109,11 +115,11 @@
             border: none;
             border-radius: 1rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 120px;
+            min-width: 130px;
         }
 
         .search-btn:hover {
@@ -122,29 +128,31 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
-        .search-btn:active {
-            transform: translateY(0);
+        .search-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
         }
 
-        /* Loading Spinner */
         .spinner {
             display: none;
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(255,255,255,0.3);
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
+            animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        /* Results Area */
         .results-container {
             display: none;
-            animation: fadeIn 0.5s ease-out forwards;
+            animation: fadeIn 0.5s ease-out;
         }
 
         .results-header {
@@ -156,7 +164,6 @@
 
         .results-header h2 {
             font-size: 1.25rem;
-            color: var(--text-color);
         }
 
         .download-btn {
@@ -168,7 +175,7 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 0.9rem;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -176,11 +183,9 @@
 
         .download-btn:hover {
             background: rgba(16, 185, 129, 0.2);
-            border-color: rgba(16, 185, 129, 0.5);
             transform: translateY(-1px);
         }
 
-        /* Table Styles */
         .table-wrapper {
             background: rgba(15, 23, 42, 0.4);
             border-radius: 1rem;
@@ -196,7 +201,7 @@
 
         th {
             background: rgba(255, 255, 255, 0.05);
-            padding: 1.2rem 1.5rem;
+            padding: 1rem 1.2rem;
             font-weight: 600;
             color: var(--text-muted);
             font-size: 0.9rem;
@@ -206,7 +211,7 @@
         }
 
         td {
-            padding: 1.2rem 1.5rem;
+            padding: 1rem 1.2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             vertical-align: middle;
         }
@@ -225,13 +230,13 @@
             padding: 0.3rem 0.6rem;
             border-radius: 0.5rem;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .price-highlight {
             color: #fca5a5;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
         }
 
         .product-link {
@@ -247,12 +252,30 @@
 
         .product-link:hover {
             color: #818cf8;
-            text-decoration: underline;
         }
 
         .shop-name {
             color: var(--text-muted);
             font-size: 0.9rem;
+        }
+
+        /* Trend button */
+        .trend-btn {
+            padding: 0.4rem 0.8rem;
+            background: rgba(79, 70, 229, 0.1);
+            color: #818cf8;
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .trend-btn:hover {
+            background: rgba(79, 70, 229, 0.25);
+            transform: translateY(-1px);
         }
 
         .error-message {
@@ -265,167 +288,348 @@
             display: none;
         }
 
+        /* ====== CHART MODAL ====== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 640px;
+            animation: fadeIn 0.3s ease-out;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            max-width: 86%;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.5rem;
+            line-height: 1;
+            padding: 0;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-color);
+        }
+
+        .modal-body {
+            position: relative;
+        }
+
+        .chart-container {
+            height: 260px;
+        }
+
+        .no-data {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .no-data strong {
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-data-hint {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            color: #64748b;
+        }
+
         @media (max-width: 768px) {
-            .glass-panel { padding: 1.5rem; }
-            .search-container { flex-direction: column; }
-            .search-btn { padding: 1.2rem; }
-            th, td { padding: 1rem; }
-            .hide-mobile { display: none; }
+            .glass-panel {
+                padding: 1.5rem;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .search-btn {
+                padding: 1.2rem;
+            }
+
+            th,
+            td {
+                padding: 0.8rem 1rem;
+            }
+
+            .hide-mobile {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
-
-<div class="container">
-    <div class="glass-panel">
-        <div class="header">
-            <h1>Danawa Price Tracker</h1>
-            <p>다나와 최저가 기계식 키보드 자동 검색기</p>
-        </div>
-
-        <div class="search-container">
-            <input type="text" id="searchInput" class="search-input" placeholder="상품명을 입력하세요 (예: 기계식 키보드, 독거미 키보드)" value="기계식 키보드" autocomplete="off">
-            <button id="searchBtn" class="search-btn">
-                <span class="btn-text">최저가 검색</span>
-                <div class="spinner"></div>
-            </button>
-        </div>
-
-        <div id="errorMessage" class="error-message"></div>
-
-        <div id="resultsContainer" class="results-container">
-            <div class="results-header">
-                <h2>검색 결과 <span style="color:var(--text-muted);font-size:0.9rem;font-weight:normal;" id="resultCount">(Top 10)</span></h2>
-                <a href="#" id="downloadBtn" class="download-btn" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    CSV 다운로드
-                </a>
+    <div class="container">
+        <div class="glass-panel">
+            <div class="header">
+                <h1>Danawa Price Tracker</h1>
+                <p>다나와 최저가 상품 검색 & 가격 추이 분석기</p>
             </div>
 
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th width="10%">순위</th>
-                            <th width="45%">상품명</th>
-                            <th width="20%">최저가</th>
-                            <th width="25%" class="hide-mobile">판매처</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Results will be inserted here -->
-                    </tbody>
-                </table>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="상품명을 입력하세요 (예: 기계식 키보드)"
+                    value="기계식 키보드" autocomplete="off">
+                <button id="searchBtn" class="search-btn">
+                    <span class="btn-text">최저가 검색</span>
+                    <div class="spinner"></div>
+                </button>
+            </div>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <div id="resultsContainer" class="results-container">
+                <div class="results-header">
+                    <h2>검색 결과 <span style="color:var(--text-muted);font-size:0.9rem;font-weight:normal;"
+                            id="resultCount"></span></h2>
+                    <a href="#" id="downloadBtn" class="download-btn" style="display:none;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        CSV 다운로드
+                    </a>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="8%">순위</th>
+                                <th width="42%">상품명</th>
+                                <th width="18%">최저가</th>
+                                <th width="20%" class="hide-mobile">판매처</th>
+                                <th width="12%">추이</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const btnText = document.querySelector('.btn-text');
-        const spinner = document.querySelector('.spinner');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const tableBody = document.getElementById('tableBody');
-        const errorMessage = document.getElementById('errorMessage');
-        const downloadBtn = document.getElementById('downloadBtn');
+    <!-- Chart Modal -->
+    <div class="modal-overlay" id="chartModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="chartTitle"></div>
+                <button class="modal-close" id="modalClose">&#x2715;</button>
+            </div>
+            <div class="modal-body">
+                <div id="noDataMsg" class="no-data" style="display:none">
+                    <strong>📈</strong>
+                    아직 가격 추이 데이터가 부족합니다.
+                    <div class="no-data-hint">이 상품이 검색 결과에 포함될 때마다 가격이 기록됩니다.<br>며칠 뒤 다시 검색하시면 그래프를 볼 수 있습니다.</div>
+                </div>
+                <div class="chart-container" id="chartContainer">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Execute search on enter
-        searchInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                performSearch();
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const btnText = document.querySelector('.btn-text');
+            const spinner = document.querySelector('.spinner');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const tableBody = document.getElementById('tableBody');
+            const errorMessage = document.getElementById('errorMessage');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const resultCount = document.getElementById('resultCount');
+            const chartModal = document.getElementById('chartModal');
+            const modalClose = document.getElementById('modalClose');
+            const chartTitle = document.getElementById('chartTitle');
+            const noDataMsg = document.getElementById('noDataMsg');
+            const chartContainer = document.getElementById('chartContainer');
+
+            let priceChartInstance = null;
+
+            searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+            searchBtn.addEventListener('click', performSearch);
+            modalClose.addEventListener('click', closeModal);
+            chartModal.addEventListener('click', e => { if (e.target === chartModal) closeModal(); });
+
+            async function performSearch() {
+                const keyword = searchInput.value.trim();
+                if (!keyword) { showError("검색어를 입력해주세요."); return; }
+
+                btnText.style.display = 'none';
+                spinner.style.display = 'block';
+                searchBtn.disabled = true;
+                errorMessage.style.display = 'none';
+                resultsContainer.style.display = 'none';
+
+                try {
+                    const response = await fetch('/api/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ keyword })
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.error) throw new Error(data.error || "서버 오류가 발생했습니다.");
+
+                    renderResults(data.data);
+                    resultCount.textContent = `(Top ${data.data.length})`;
+
+                    if (data.filename) {
+                        downloadBtn.href = `/api/download/${data.filename}`;
+                        downloadBtn.style.display = 'flex';
+                    }
+                    resultsContainer.style.display = 'block';
+                } catch (error) {
+                    showError(error.message);
+                } finally {
+                    btnText.style.display = 'block';
+                    spinner.style.display = 'none';
+                    searchBtn.disabled = false;
+                }
+            }
+
+            function renderResults(items) {
+                tableBody.innerHTML = '';
+                items.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.style.animation = `fadeIn 0.3s ease-out ${index * 0.05}s both`;
+                    tr.innerHTML = `
+                <td><span class="rank-badge">${index + 1}</span></td>
+                <td><a href="${item.링크}" target="_blank" class="product-link" title="${item.상품명}">${item.상품명}</a></td>
+                <td><span class="price-highlight">${new Intl.NumberFormat('ko-KR').format(item.가격)}원</span></td>
+                <td class="hide-mobile"><span class="shop-name">${item.판매처}</span></td>
+                <td><button class="trend-btn" onclick="showTrend('${item.상품명.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${item.가격}')">📈 가격 추이</button></td>
+            `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            window.showTrend = async function (productName, currentPrice) {
+                chartTitle.textContent = productName;
+                chartModal.classList.add('active');
+                noDataMsg.style.display = 'none';
+                chartContainer.style.display = 'block';
+
+                if (priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+
+                try {
+                    const r = await fetch(`/api/price_history?product_name=${encodeURIComponent(productName)}&days=90`);
+                    const data = await r.json();
+                    const history = data.history || [];
+
+                    if (history.length < 2) {
+                        noDataMsg.style.display = 'block';
+                        chartContainer.style.display = 'none';
+                        return;
+                    }
+
+                    const labels = history.map(h => {
+                        const d = new Date(h.date);
+                        return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    });
+                    const prices = history.map(h => h.price);
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+
+                    const ctx = document.getElementById('priceChart').getContext('2d');
+                    priceChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: '최저가 (원)',
+                                data: prices,
+                                borderColor: '#818cf8',
+                                backgroundColor: 'rgba(129,140,248,0.1)',
+                                borderWidth: 2.5,
+                                pointBackgroundColor: prices.map(p => p === minPrice ? '#34d399' : p === maxPrice ? '#f87171' : '#818cf8'),
+                                pointRadius: prices.map(p => (p === minPrice || p === maxPrice) ? 7 : 4),
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: '#1e293b',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    callbacks: {
+                                        label: ctx => `  ${new Intl.NumberFormat('ko-KR').format(ctx.raw)}원`
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', maxRotation: 30 } },
+                                y: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#94a3b8', callback: v => `${new Intl.NumberFormat('ko-KR').format(v)}원` }
+                                }
+                            }
+                        }
+                    });
+                } catch (e) {
+                    noDataMsg.style.display = 'block';
+                    chartContainer.style.display = 'none';
+                }
+            };
+
+            function closeModal() {
+                chartModal.classList.remove('active');
+                if (priceChartInstance) { priceChartInstance.destroy(); priceChartInstance = null; }
+            }
+
+            function showError(msg) {
+                errorMessage.textContent = msg;
+                errorMessage.style.display = 'block';
             }
         });
-
-        searchBtn.addEventListener('click', performSearch);
-
-        async function performSearch() {
-            const keyword = searchInput.value.trim();
-            if (!keyword) {
-                showError("검색어를 입력해주세요.");
-                return;
-            }
-
-            // Set Loading state
-            btnText.style.display = 'none';
-            spinner.style.display = 'block';
-            searchBtn.disabled = true;
-            errorMessage.style.display = 'none';
-            resultsContainer.style.display = 'none';
-
-            try {
-                const response = await fetch('/api/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyword })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok || data.error) {
-                    throw new Error(data.error || "서버 오류가 발생했습니다.");
-                }
-
-                renderResults(data.data);
-                
-                if (data.filename) {
-                    downloadBtn.href = `/api/download/${data.filename}`;
-                    downloadBtn.style.display = 'flex';
-                }
-
-                resultsContainer.style.display = 'block';
-
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                // Remove Loading state
-                btnText.style.display = 'block';
-                spinner.style.display = 'none';
-                searchBtn.disabled = false;
-            }
-        }
-
-        function renderResults(items) {
-            tableBody.innerHTML = '';
-            
-            items.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                
-                // Format price 
-                const formattedPrice = new Intl.NumberFormat('ko-KR').format(item.가격) + '원';
-                
-                // Add staggered animation delay
-                tr.style.animation = `fadeIn 0.3s ease-out ${index * 0.05}s forwards`;
-                tr.style.opacity = '0';
-                
-                tr.innerHTML = `
-                    <td>
-                        <span class="rank-badge">${index + 1}</span>
-                    </td>
-                    <td>
-                        <a href="${item.링크}" target="_blank" class="product-link" title="${item.상품명}">
-                            ${item.상품명}
-                        </a>
-                    </td>
-                    <td>
-                        <span class="price-highlight">${formattedPrice}</span>
-                    </td>
-                    <td class="hide-mobile">
-                        <span class="shop-name">${item.판매처}</span>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-
-        function showError(msg) {
-            errorMessage.textContent = msg;
-            errorMessage.style.display = 'block';
-        }
-        
-    });
-</script>
+    </script>
 </body>
+
 </html>

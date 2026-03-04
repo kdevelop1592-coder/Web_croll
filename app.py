@@ -1,3 +1,5 @@
+import sqlite3
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_file
 import os
 import pandas as pd
@@ -7,6 +9,37 @@ import urllib.parse as parse
 import re
 
 app = Flask(__name__)
+DB_PATH = 'price_history.db'
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_name TEXT,
+            price INTEGER,
+            shop TEXT,
+            link TEXT,
+            keyword TEXT,
+            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def save_price_history(keyword, items):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    for item in items:
+        c.execute('''
+            INSERT INTO price_history (product_name, price, shop, link, keyword)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (item['상품명'], item['가격'], item['판매처'], item['링크'], keyword))
+    conn.commit()
+    conn.close()
+
+init_db()
 
 def crawl_danawa(keyword, max_items=10):
     encoded_keyword = parse.quote(keyword)
@@ -97,8 +130,39 @@ def search():
     result = crawl_danawa(keyword)
     if "error" in result:
         return jsonify({"error": result["error"]}), 500
+    
+    # 검색할 때마다 가격 이력 저장
+    save_price_history(keyword, result["data"])
         
     return jsonify(result)
+
+@app.route('/api/price_history', methods=['GET'])
+def price_history():
+    product_name = request.args.get('product_name', '').strip()
+    days = int(request.args.get('days', 30))
+    if not product_name:
+        return jsonify({"error": "product_name 파라미터가 필요합니다."}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+    c.execute('''
+        SELECT price, shop, recorded_at
+        FROM price_history
+        WHERE product_name = ?
+        AND recorded_at >= ?
+        ORDER BY recorded_at ASC
+    ''', (product_name, since))
+    rows = c.fetchall()
+    conn.close()
+    
+    history = [{
+        "price": row[0],
+        "shop": row[1],
+        "date": row[2]
+    } for row in rows]
+    
+    return jsonify({"product_name": product_name, "history": history})
 
 @app.route('/api/download/<filename>')
 def download(filename):
