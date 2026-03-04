@@ -41,7 +41,9 @@ def save_price_history(keyword, items):
 
 init_db()
 
-def crawl_danawa(keyword, max_items=10):
+def crawl_danawa(keyword, max_items=10, min_price=0, exclude_keywords=None):
+    if exclude_keywords is None:
+        exclude_keywords = []
     encoded_keyword = parse.quote(keyword)
     url = f"https://search.danawa.com/dsearch.php?k1={encoded_keyword}&module=goods&act=dispMain&sort=priceASC"
     
@@ -86,6 +88,15 @@ def crawl_danawa(keyword, max_items=10):
                 price = int(price_text) if price_text.isdigit() else 0
                 if price <= 0: continue
                 
+                # 최소 가격 필터
+                if price < min_price:
+                    continue
+                
+                # 제외 키워드 필터
+                name_lower = name.lower()
+                if any(kw.lower() in name_lower for kw in exclude_keywords if kw.strip()):
+                    continue
+
                 shop = "N/A"
                 mall_el = item.select_one('.mall_name')
                 if mall_el:
@@ -126,8 +137,12 @@ def search():
     keyword = data.get('keyword', '').strip()
     if not keyword:
         return jsonify({"error": "검색어를 입력해주세요."}), 400
+    
+    min_price = int(data.get('min_price', 0) or 0)
+    exclude_raw = data.get('exclude_keywords', '')
+    exclude_keywords = [k.strip() for k in exclude_raw.split(',') if k.strip()]
         
-    result = crawl_danawa(keyword)
+    result = crawl_danawa(keyword, min_price=min_price, exclude_keywords=exclude_keywords)
     if "error" in result:
         return jsonify({"error": result["error"]}), 500
     

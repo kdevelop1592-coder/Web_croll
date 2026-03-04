@@ -395,6 +395,55 @@
                 display: none;
             }
         }
+
+        /* ===== FILTER PANEL ===== */
+        .filter-panel {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-input {
+            padding: 0.6rem 0.9rem;
+            font-size: 0.95rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 0.6rem;
+            color: var(--text-color);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .filter-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+        }
+
+        .filter-hint {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
     </style>
 </head>
 
@@ -413,6 +462,21 @@
                     <span class="btn-text">최저가 검색</span>
                     <div class="spinner"></div>
                 </button>
+            </div>
+
+            <!-- 필터 패널 -->
+            <div class="filter-panel">
+                <div class="filter-group">
+                    <label class="filter-label" for="minPrice">최소 가격</label>
+                    <input type="number" id="minPrice" class="filter-input" placeholder="예: 10000" min="0" step="1000">
+                    <div class="filter-hint">이 금액 미만 상품 제외</div>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label" for="excludeKeywords">제외 키워드</label>
+                    <input type="text" id="excludeKeywords" class="filter-input" placeholder="키스킨, 덮개, 커버"
+                        value="키스킨, 덮개, 커버">
+                    <div class="filter-hint">쉼표(,)로 구분하여 입력</div>
+                </div>
             </div>
 
             <div id="errorMessage" class="error-message"></div>
@@ -505,10 +569,13 @@
                 resultsContainer.style.display = 'none';
 
                 try {
+                    const minPrice = parseInt(document.getElementById('minPrice').value || '0', 10) || 0;
+                    const excludeKeywords = document.getElementById('excludeKeywords').value || '';
+
                     const response = await fetch('/api/search', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ keyword })
+                        body: JSON.stringify({ keyword, min_price: minPrice, exclude_keywords: excludeKeywords })
                     });
                     const data = await response.json();
                     if (!response.ok || data.error) throw new Error(data.error || "서버 오류가 발생했습니다.");
